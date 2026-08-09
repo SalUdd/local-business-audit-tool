@@ -61,10 +61,12 @@ export function AuditSearchForm({ credits }: AuditSearchFormProps) {
           toast.success("Loaded cached audit results from the last 7 days.", {
             description: `${result.leads.length} leads ready — no credits used.`,
           });
+          router.push(`/dashboard?auditId=${result.auditId}`);
         } else {
           toast.success("Audit complete.", {
             description: "Fresh leads are ready on your dashboard.",
           });
+          router.push(`/dashboard?auditId=${result.auditId}`);
         }
 
         router.refresh();
