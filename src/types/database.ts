@@ -11,13 +11,16 @@ export type AuditGapCategory =
   | "schema"
   | "other";
 
-/** Shape of objects stored in `leads.audit_gaps` JSONB. */
+/** Structured gap detail (optional richer format). */
 export interface AuditGap {
   category: AuditGapCategory;
   title: string;
   description: string;
   severity: AuditGapSeverity;
 }
+
+/** Gap codes written by the audit scorer (stored in `leads.audit_gaps` JSONB). */
+export type AuditGapCode = string;
 
 export interface Profile {
   id: string;
@@ -56,7 +59,7 @@ export interface Lead {
   load_time_ms: number | null;
   missing_meta: boolean | null;
   has_schema: boolean | null;
-  audit_gaps: AuditGap[];
+  audit_gaps: AuditGapCode[];
   created_at: string;
 }
 
@@ -79,7 +82,7 @@ export type LeadInsert = Omit<
   id?: string;
   audit_score?: number;
   has_website?: boolean;
-  audit_gaps?: AuditGap[];
+  audit_gaps?: AuditGapCode[];
   created_at?: string;
 };
 
