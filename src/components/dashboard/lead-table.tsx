@@ -1,11 +1,11 @@
 "use client";
 
-import { Download, ExternalLink, Search } from "lucide-react";
+import { Download, ExternalLink, Search, Star } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -22,8 +22,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Lead } from "@/types/database";
 import { cn } from "@/lib/utils";
+import type { Lead } from "@/types/database";
 
 type SortOrder = "asc" | "desc";
 type GapFilter = "all" | KnownGapCode;
@@ -115,14 +115,39 @@ function escapeCsvValue(value: string): string {
   return value;
 }
 
+function formatReviewMeta(lead: Lead): {
+  label: string;
+  isLowVolume: boolean;
+} {
+  const reviewCount = lead.user_ratings_total ?? 0;
+  const isLowVolume = reviewCount < 10;
+
+  if (reviewCount === 0) {
+    return {
+      label: "No reviews",
+      isLowVolume: true,
+    };
+  }
+
+  const ratingLabel =
+    typeof lead.rating === "number" ? lead.rating.toFixed(1) : "—";
+
+  return {
+    label: `${ratingLabel} (${reviewCount} ${reviewCount === 1 ? "review" : "reviews"})`,
+    isLowVolume,
+  };
+}
+
 function downloadLeadsCsv(leads: Lead[]) {
   const headers = [
-    "Name",
+    "Business Name",
     "Address",
     "Phone",
     "Website",
+    "Google Rating",
+    "Total Reviews",
     "Audit Score",
-    "Primary Audit Gap",
+    "Primary Audit Gaps",
   ];
 
   const rows = leads.map((lead) => [
@@ -130,6 +155,8 @@ function downloadLeadsCsv(leads: Lead[]) {
     lead.address ?? "",
     lead.phone ?? "",
     lead.website ?? "",
+    lead.rating != null ? String(lead.rating) : "",
+    String(lead.user_ratings_total ?? 0),
     String(lead.audit_score),
     getPrimaryGap(lead.audit_gaps ?? []),
   ]);
@@ -269,7 +296,10 @@ export function LeadTable({ leads }: LeadTableProps) {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredLeads.map((lead) => (
+              filteredLeads.map((lead) => {
+                const reviewMeta = formatReviewMeta(lead);
+
+                return (
                 <TableRow key={lead.id}>
                   <TableCell className="max-w-72 whitespace-normal">
                     <div className="space-y-1">
@@ -277,6 +307,23 @@ export function LeadTable({ leads }: LeadTableProps) {
                       <p className="text-xs text-muted-foreground">
                         {lead.address || "Address unavailable"}
                       </p>
+                      <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                        <span className="inline-flex items-center gap-1 text-xs text-foreground">
+                          <Star
+                            className="size-3.5 fill-amber-400 text-amber-400"
+                            aria-hidden="true"
+                          />
+                          <span className="tabular-nums">{reviewMeta.label}</span>
+                        </span>
+                        {reviewMeta.isLowVolume ? (
+                          <Badge
+                            variant="outline"
+                            className="h-5 border-amber-300 bg-amber-50 px-1.5 text-[10px] font-medium text-amber-800"
+                          >
+                            Low reviews
+                          </Badge>
+                        ) : null}
+                      </div>
                     </div>
                   </TableCell>
 
@@ -343,23 +390,21 @@ export function LeadTable({ leads }: LeadTableProps) {
                   </TableCell>
 
                   <TableCell className="text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      render={
-                        <Link
-                          href={`/report/${lead.id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        />
-                      }
+                    <Link
+                      href={`/report/${lead.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cn(
+                        buttonVariants({ variant: "outline", size: "sm" })
+                      )}
                     >
                       View Report
                       <ExternalLink data-icon="inline-end" />
-                    </Button>
+                    </Link>
                   </TableCell>
                 </TableRow>
-              ))
+                );
+              })
             )}
           </TableBody>
         </Table>
